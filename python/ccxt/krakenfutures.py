@@ -48,7 +48,7 @@ class krakenfutures(Exchange, ImplicitAPI):
                 'cancelAllOrders': True,
                 'cancelOrder': True,
                 'cancelOrders': True,
-                'createMarketOrder': False,
+                'createMarketOrder': True,
                 'createOrder': True,
                 'editOrder': True,
                 'fetchBalance': True,
@@ -78,7 +78,7 @@ class krakenfutures(Exchange, ImplicitAPI):
                 'fetchMyTrades': True,
                 'fetchOHLCV': True,
                 'fetchOpenOrders': True,
-                'fetchOrder': False,
+                'fetchOrder': True,
                 'fetchOrderBook': True,
                 'fetchOrders': False,
                 'fetchPositions': True,
@@ -986,6 +986,18 @@ class krakenfutures(Exchange, ImplicitAPI):
         params = self.omit(params, ['clientOrderId', 'timeInForce', 'triggerPrice', 'stopLossPrice', 'takeProfitPrice'])
         return self.extend(request, params)
 
+    def create_market_order(self, symbol: str, side: str, amount: float, params={}):
+        """
+        create a market order
+        :see: https://docs.futures.kraken.com/#http-api-trading-v3-api-order-management-send-order
+        :param str symbol: unified market symbol
+        :param str side: 'buy' or'sell'
+        :param float amount: number of contracts
+        :param dict params: extra parameters specific to the kraken futures api endpoint
+        :returns dict: an `order structure <https://docs.ccxt.com/#/?id=order-structure>`
+        """
+        return self.create_order(symbol, 'market', side, amount, None, params)
+
     def create_order(self, symbol: str, type: OrderType, side: OrderSide, amount: float, price: Num = None, params={}):
         """
         Create an order on the exchange
@@ -1224,6 +1236,23 @@ class krakenfutures(Exchange, ImplicitAPI):
         response = self.privateGetOpenorders(params)
         orders = self.safe_list(response, 'openOrders', [])
         return self.parse_orders(orders, market, since, limit)
+
+    def fetch_order(self, id: str, symbol: Str = None, params={}) -> Order:
+        """
+        :see: https://docs.futures.kraken.com/#http-api-trading-v3-api-order-management-get-order-details
+        Gets an order by id from the exchange api 
+        """
+        self.load_markets()
+        market = None
+        if symbol is not None:
+            market = self.market(symbol)
+        response = self.privateGetOpenorders(params)
+        orders = self.safe_list(response, 'openOrders', [])
+        for i in range(0, len(orders)):
+            order = orders[i]
+            if order['orderId'] == id:
+                return self.parse_order(order, market)
+        return None
 
     def fetch_closed_orders(self, symbol: Str = None, since: Int = None, limit: Int = None, params={}) -> List[Order]:
         """
