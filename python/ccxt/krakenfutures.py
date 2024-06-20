@@ -1250,7 +1250,7 @@ class krakenfutures(Exchange, ImplicitAPI):
         orders = self.safe_list(response, 'openOrders', [])
         for i in range(0, len(orders)):
             order = orders[i]
-            if order['orderId'] == id:
+            if order['order_id'] == id:
                 return self.parse_order(order, market)
         return None
 
